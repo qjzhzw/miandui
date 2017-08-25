@@ -32,11 +32,15 @@ urlpatterns=[
 	url(r'^prize_get/', views.prize_get, name='prize_get'),
 	url(r'^prize_num_buy/', views.prize_num_buy, name='prize_num_buy'),
 	url(r'^card_search/', views.card_search, name='card_search'),
+	url(r'^qrcode_make/', views.qrcode_make, name='qrcode_make'),
 	
 	url(r'^APP_download/', views.APP_download, name='APP_download'),
 	url(r'^version_update/', views.version_update, name='version_update'),
 
 	url(r'^login_2/', views.login_2, name='login_2'),
 	url(r'^register_2/', views.register_2, name='register_2'),
+	url(r'^forget_vertification_2/', views.forget_vertification_2, name='forget_vertification_2'),
+	url(r'^forget_login_2/', views.forget_login_2, name='forget_login_2'),
 	url(r'^order_list_get_2/', views.order_list_get_2, name='order_list_get_2'),
+	url(r'^qrcode_make_2/', views.qrcode_make_2, name='qrcode_make_2'),
 ]

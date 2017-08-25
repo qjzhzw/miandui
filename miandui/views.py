@@ -13,16 +13,18 @@ import string
 import xlrd
 import os
 import random
+import qrcode
 
 import sms
 from .models import User, Phone, Timing, Shop, Goods, Discount, Friend, Advertisement, Prize, Order, OrderGoods
 	
+
 #from django.views.decorators.csrf import csrf_exempt
 #@csrf_exempt
-
 #base_url = 'http://127.0.0.1:8080/'
 #base_url = 'http://qjzhzw.tunnel.qydev.com/'
-base_url = 'http://ab284a5f.ngrok.io/'
+#base_url = 'http://ab284a5f.ngrok.io/'
+base_url = 'http://101.132.41.114:8080/'
 MARK_PERCENT = 1 / float(60)#计时→积分兑换比率
 TIME_MAX = 550 * 60#每日单人模式计时上限
 VERSION_LATEST = float(1.0)#最新版本
@@ -1160,6 +1162,26 @@ def card_search(request):
 		return HttpResponse(simplejson.dumps(data))
 
 
+def qrcode_make(request):
+#	if request.method == 'GET':
+	if request.method == 'POST':
+		
+		qr = qrcode.QRCode(version = 1, box_size = 10, border = 4)
+		qr.add_data('支付成功')
+		qr.make(fit = True)
+		img = qr.make_image()
+		img.save('static/advanceduse.png')
+
+		content = {}
+		content['qrcode'] = base_url + 'static/advanceduse.png'
+		data = {}
+		data['code'] = '200'
+		data['msg'] = '二维码生成成功'
+		data['content'] = content
+		
+		return HttpResponse(simplejson.dumps(data))
+
+
 def APP_download(request):
 	def file_iterator(file_name, chunk_size=512):
 		with open(file_name) as f:
@@ -1217,6 +1239,11 @@ def login_2(request):
 			data['code'] = '202'
 			data['msg'] = '密码输入错误'
 		else:
+			result = result_shop.last()
+			#更新最后登录时间
+			result.time_login = timezone.now()
+			result.save()
+
 			data['code'] = '200'
 			data['msg'] = '登录成功'
 		
@@ -1249,6 +1276,77 @@ def register_2(request):
 			
 			data['code'] = '200'
 			data['msg'] = '注册成功'
+		
+		return HttpResponse(simplejson.dumps(data))
+
+
+def forget_vertification_2(request):
+#	if request.method == 'GET':
+#		data_identification = '15150147508'
+	if request.method == 'POST':
+		data_identification = request.POST['identification']#获取用户名
+		
+		result = Shop.objects.filter(identification = data_identification)
+		
+		data = {}
+		if len(result) == 0:
+			data['code'] = '201'
+			data['msg'] = '该用户名不存在'
+		else:
+			get_code = sms.send(data_identification)#发送验证码
+			
+			phone = Phone()#创建手机号信息
+			phone.identification = data_identification
+			phone.code = get_code
+			phone.code_start = time.strftime('%H:%M:%S',time.localtime(time.time()))#记录当前时间
+			phone.save()
+			
+			data['code'] = '200'
+			data['msg'] = '短信发送成功'
+		
+		return HttpResponse(simplejson.dumps(data))
+		
+		
+def forget_login_2(request):
+#	if request.method == 'GET':
+#		data_identification = '15150147508'#获取用户名
+#		data_code = '685042'#获取验证码
+	if request.method == 'POST':
+		data_identification = request.POST['identification']#获取用户名
+		data_code = request.POST['code']#获取验证码
+		
+		result_phone = Phone.objects.filter(identification = data_identification)
+		result_shop = Shop.objects.filter(identification = data_identification)
+		
+		#记录当前时间
+		try:
+			result = result_phone.last()
+			result.code_end = time.strftime('%H:%M:%S',time.localtime(time.time()))#记录当前时间
+			result.save()
+		except Exception, e:
+			print e
+		
+		data = {}
+		if len(result_phone) == 0:
+			data['code'] = '201'
+			data['msg'] = '尚未发送验证码'
+		elif cmp(result_phone.last().code, data_code) != 0:
+			data['code'] = '202'
+			data['msg'] = '验证码输入错误'
+		elif sub_time(result_phone.last().code_start, result_phone.last().code_end) > 600:#定时600秒
+			data['code'] = '203'
+			data['msg'] = '验证码超时'
+		elif len(result_shop) == 0:
+			data['code'] = '204'
+			data['msg'] = '该用户名不存在'
+		else:
+			result = result_shop.last()
+			#更新最后登录时间
+			result.time_login = timezone.now()
+			result.save()
+
+			data['code'] = '200'
+			data['msg'] = '登陆成功'
 		
 		return HttpResponse(simplejson.dumps(data))
 
@@ -1298,6 +1396,26 @@ def order_list_get_2(request):
 		return HttpResponse(simplejson.dumps(data))
 		
 		
+def qrcode_make_2(request):
+#	if request.method == 'GET':
+	if request.method == 'POST':
+		
+		qr = qrcode.QRCode(version = 1, box_size = 10, border = 4)
+		qr.add_data('用户消费成功')
+		qr.make(fit = True)
+		img = qr.make_image()
+		img.save('static/advanceduse2.png')
+
+		content = {}
+		content['qrcode'] = base_url + 'static/advanceduse2.png'
+		data = {}
+		data['code'] = '200'
+		data['msg'] = '二维码生成成功'
+		data['content'] = content
+		
+		return HttpResponse(simplejson.dumps(data))
+
+
 #计算时间差
 def sub_time(time_start, time_end):
 	hour_start = time_start.hour
